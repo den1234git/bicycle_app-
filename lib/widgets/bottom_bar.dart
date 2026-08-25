@@ -50,7 +50,7 @@ class BottomBar extends StatelessWidget {
       children: [
         MapButton(
           color: Colors.red,
-          onTap: onSos,
+          onLongPress: onSos,
           child: const Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

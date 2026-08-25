@@ -677,7 +677,11 @@ class _MapPageState extends State<MapPage> {
       onWaitLongPress: () {
         _showTrainPopup(title: '🚉 次で降車です', subtitle: '新宿駅まで 240m');
       },
-      onSos: () => showSosDialog(context),
+      onSos: () => showSosDialog(
+        context,
+        currentPos: currentPos,
+        transportMode: mapState.transportMode,
+      ),
     );
   }
 }
