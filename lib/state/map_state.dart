@@ -43,9 +43,22 @@ class MapState {
 
   String nextGuideText = '';
 
+  bool isFollowing = true;
+  bool isRouteOverview = false;
+  bool isFullView = false;
+
+  double speed = 0;
+  double heading = 0;
+  double smoothedHeading = 0;
+
+  double routeDistanceKm = 0;
+  String etaText = "--";
+
   void clearRoute() {
     routePoints.clear();
     goal = null;
     appMode = AppMode.idle;
+    isRouteOverview = false;
+    isFullView = false;
   }
 }
