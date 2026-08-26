@@ -17,6 +17,7 @@ import 'dialogs/sos_dialog.dart';
 import 'dialogs/hazard_dialog.dart';
 import 'models/hazard_report.dart';
 import 'services/hazard_store.dart';
+import 'widgets/shiba_marker.dart';
 import 'helpers/map_text_helper.dart';
 
 import 'controllers/sensor_controller.dart';
@@ -72,6 +73,7 @@ class _MapPageState extends State<MapPage> {
 
   BitmapDescriptor? walkIcon;
   BitmapDescriptor? bikeIcon;
+  BitmapDescriptor? shibaIcon;
   List<HazardReport> hazardReports = [];
 
   void setProgrammaticMove() {
@@ -467,6 +469,7 @@ class _MapPageState extends State<MapPage> {
       const ImageConfiguration(size: Size(30, 30)),
       'assets/icons/bike001.png',
     );
+    shibaIcon = await createShibaMarker(size: 80);
     if (mounted) setState(() {});
   }
 
@@ -479,7 +482,7 @@ class _MapPageState extends State<MapPage> {
         anchor: const Offset(0.5, 0.5),
         flat: true,
         zIndex: 10,
-        icon: bikeIcon ?? BitmapDescriptor.defaultMarker,
+        icon: shibaIcon ?? bikeIcon ?? BitmapDescriptor.defaultMarker,
       ),
       if (mapState.goal != null)
         Marker(
