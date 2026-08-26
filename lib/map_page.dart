@@ -175,9 +175,18 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  bool _draggedWhileStopped = false;
+
   Future<void> _onGpsUpdate(LatLng pos, double spd, double hdg) async {
     currentPos = pos;
     mapState.speed = spd;
+
+    if (_draggedWhileStopped && spd > 3) {
+      _draggedWhileStopped = false;
+      setState(() {
+        mapState.isFollowing = true;
+      });
+    }
 
     rideTracker.recordPosition(currentPos, spd);
 
@@ -556,8 +565,11 @@ class _MapPageState extends State<MapPage> {
     if (isProgrammaticMove) return;
 
     if (moved > 0.00002 && mapState.isFollowing) {
-      NavLogger.follow('FOLLOW OFF BY DRAG moved=$moved');
+      NavLogger.follow('FOLLOW OFF BY DRAG moved=$moved speed=${mapState.speed}');
       setState(() => mapState.isFollowing = false);
+      if (mapState.speed < 3) {
+        _draggedWhileStopped = true;
+      }
     }
   }
 
@@ -822,6 +834,7 @@ class _MapPageState extends State<MapPage> {
       isTrainMode: mapState.transportMode == TransportMode.train,
       onCurrent: () {
         NavLogger.follow('GPS button tapped');
+        _draggedWhileStopped = false;
         setProgrammaticMove();
         setState(() {
           mapState.isRouteOverview = false;
