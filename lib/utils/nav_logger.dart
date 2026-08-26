@@ -13,14 +13,10 @@ class NavLogger {
   // ログ本体（唯一の正解）
   // =========================
   static void _log(String tag, String message) {
-    print('NAVLOGGER _log CALLED');
-
     final line = '[${DateTime.now().toIso8601String()}][$tag] $message';
 
     // コンソール
     developer.log(line);
-
-    developer.log('PENDING LOGS: ${_pendingLogs.length}');
 
     // メモリ保持
     _buffer.add(line);
@@ -57,8 +53,6 @@ class NavLogger {
   // =========================
   static void _startTimerIfNeeded() {
     if (_saveTimer != null) return;
-
-    print('TIMER STARTED');
 
     _saveTimer = Timer.periodic(
       const Duration(seconds: 5),
