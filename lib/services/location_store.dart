@@ -40,4 +40,32 @@ class LocationStore {
       'lng': lng,
     };
   }
+
+  static Future<void> saveSchool(double lat, double lng) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('school_lat', lat);
+    await prefs.setDouble('school_lng', lng);
+  }
+
+  static Future<Map<String, double>?> loadSchool() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lat = prefs.getDouble('school_lat');
+    final lng = prefs.getDouble('school_lng');
+    if (lat == null || lng == null) return null;
+    return {'lat': lat, 'lng': lng};
+  }
+
+  static Future<void> saveParking(double lat, double lng) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('parking_lat', lat);
+    await prefs.setDouble('parking_lng', lng);
+  }
+
+  static Future<Map<String, double>?> loadParking() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lat = prefs.getDouble('parking_lat');
+    final lng = prefs.getDouble('parking_lng');
+    if (lat == null || lng == null) return null;
+    return {'lat': lat, 'lng': lng};
+  }
 }

@@ -56,6 +56,8 @@ class _MapPageState extends State<MapPage> {
   LatLng? currentCameraTarget;
   LatLng? homePos;
   LatLng? companyPos;
+  LatLng? schoolPos;
+  LatLng? parkingPos;
 
   String? selectingLocationType;
 
@@ -122,9 +124,13 @@ class _MapPageState extends State<MapPage> {
   Future<void> _loadSavedLocations() async {
     final home = await LocationStore.loadHome();
     final work = await LocationStore.loadWork();
+    final school = await LocationStore.loadSchool();
+    final parking = await LocationStore.loadParking();
     setState(() {
       if (home != null) homePos = LatLng(home['lat']!, home['lng']!);
       if (work != null) companyPos = LatLng(work['lat']!, work['lng']!);
+      if (school != null) schoolPos = LatLng(school['lat']!, school['lng']!);
+      if (parking != null) parkingPos = LatLng(parking['lat']!, parking['lng']!);
     });
   }
 
@@ -764,6 +770,22 @@ class _MapPageState extends State<MapPage> {
                     const SnackBar(content: Text('会社を登録しました')),
                   );
                 }
+                if (selectingLocationType == 'school') {
+                  setState(() => schoolPos = pos);
+                  await LocationStore.saveSchool(pos.latitude, pos.longitude);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('学校を登録しました')),
+                  );
+                }
+                if (selectingLocationType == 'parking') {
+                  setState(() => parkingPos = pos);
+                  await LocationStore.saveParking(pos.latitude, pos.longitude);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('駐輪位置を登録しました')),
+                  );
+                }
                 selectingLocationType = null;
               },
               onCameraMove: (position) {
@@ -816,6 +838,8 @@ class _MapPageState extends State<MapPage> {
             builder: (_) => MorePage(
               homeRegistered: homePos != null,
               companyRegistered: companyPos != null,
+              schoolRegistered: schoolPos != null,
+              parkingRegistered: parkingPos != null,
               onSelectHome: () async {
                 if (homePos != null) {
                   setState(() {
@@ -844,6 +868,36 @@ class _MapPageState extends State<MapPage> {
                 setState(() => selectingLocationType = 'company');
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('地図を長押しして会社登録')),
+                );
+              },
+              onSelectSchool: () async {
+                if (schoolPos != null) {
+                  setState(() {
+                    mapState.goal = schoolPos;
+                    mapState.isFollowing = false;
+                    mapState.isRouteOverview = true;
+                  });
+                  await _generateRoute();
+                  return;
+                }
+                setState(() => selectingLocationType = 'school');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('地図を長押しして学校登録')),
+                );
+              },
+              onSelectParking: () async {
+                if (parkingPos != null) {
+                  setState(() {
+                    mapState.goal = parkingPos;
+                    mapState.isFollowing = false;
+                    mapState.isRouteOverview = true;
+                  });
+                  await _generateRoute();
+                  return;
+                }
+                setState(() => selectingLocationType = 'parking');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('地図を長押しして駐輪位置登録')),
                 );
               },
             ),
