@@ -6,6 +6,7 @@ class BottomBar extends StatelessWidget {
   final double speed;
   final bool showSpeed;
   final VoidCallback onTimeTap;
+  final VoidCallback? onTimeLongPress;
   final String modeText;
   final bool walkMode;
   final VoidCallback onCurrent;
@@ -27,6 +28,7 @@ class BottomBar extends StatelessWidget {
     required this.speed,
     required this.showSpeed,
     required this.onTimeTap,
+    this.onTimeLongPress,
     required this.modeText,
     required this.walkMode,
     required this.onCurrent,
@@ -68,6 +70,7 @@ class BottomBar extends StatelessWidget {
         ),
         MapButton(
           onTap: onTimeTap,
+          onLongPress: onTimeLongPress,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

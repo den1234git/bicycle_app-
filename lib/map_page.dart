@@ -14,6 +14,9 @@ import 'widgets/map_view.dart';
 import 'widgets/more_page.dart';
 
 import 'dialogs/sos_dialog.dart';
+import 'dialogs/hazard_dialog.dart';
+import 'models/hazard_report.dart';
+import 'services/hazard_store.dart';
 import 'helpers/map_text_helper.dart';
 
 import 'controllers/sensor_controller.dart';
@@ -69,6 +72,7 @@ class _MapPageState extends State<MapPage> {
 
   BitmapDescriptor? walkIcon;
   BitmapDescriptor? bikeIcon;
+  List<HazardReport> hazardReports = [];
 
   void setProgrammaticMove() {
     NavLogger.camera('SET PROGRAMMATIC TRUE');
@@ -86,6 +90,7 @@ class _MapPageState extends State<MapPage> {
   void initState() {
     super.initState();
     _loadSavedLocations();
+    _loadHazardReports();
     WakelockPlus.enable();
     _initGps();
     _initCompass();
@@ -110,6 +115,11 @@ class _MapPageState extends State<MapPage> {
       if (home != null) homePos = LatLng(home['lat']!, home['lng']!);
       if (work != null) companyPos = LatLng(work['lat']!, work['lng']!);
     });
+  }
+
+  Future<void> _loadHazardReports() async {
+    final reports = await HazardStore.load();
+    setState(() => hazardReports = reports);
   }
 
   void _initCompass() {
@@ -142,6 +152,14 @@ class _MapPageState extends State<MapPage> {
   Future<void> _onGpsUpdate(LatLng pos, double spd, double hdg) async {
     currentPos = pos;
     mapState.speed = spd;
+
+    if (GpsUpdateController.detectSuddenBrake(currentSpeed: spd)) {
+      final report = await HazardStore.addReport(
+        type: HazardType.suddenBrake,
+        position: currentPos,
+      );
+      setState(() => hazardReports.add(report));
+    }
 
     mapState.smoothedHeading = GpsUpdateController.smoothHeading(
       currentHeading: mapState.smoothedHeading,
@@ -468,6 +486,19 @@ class _MapPageState extends State<MapPage> {
           markerId: const MarkerId('goal'),
           position: mapState.goal!,
         ),
+      ...hazardReports.map((r) => Marker(
+            markerId: MarkerId('hazard_${r.id}'),
+            position: r.position,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              r.type == HazardType.suddenBrake
+                  ? BitmapDescriptor.hueOrange
+                  : BitmapDescriptor.hueYellow,
+            ),
+            infoWindow: InfoWindow(
+              title: HazardReport.labelFor(r.type),
+              snippet: r.note,
+            ),
+          )),
     };
   }
 
@@ -653,6 +684,15 @@ class _MapPageState extends State<MapPage> {
       speed: mapState.speed,
       showSpeed: false,
       onTimeTap: () {},
+      onTimeLongPress: () async {
+        final report = await showHazardReportDialog(
+          context,
+          position: currentPos,
+        );
+        if (report != null) {
+          setState(() => hazardReports.add(report));
+        }
+      },
       modeText: MapTextHelper.modeText(mapState.transportMode),
       viewText: MapTextHelper.viewText(mapState.viewMode),
       commuteText: CommuteController.label(commutePhase),

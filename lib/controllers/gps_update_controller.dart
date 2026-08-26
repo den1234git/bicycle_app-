@@ -2,7 +2,18 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/foundation.dart';
 
 class GpsUpdateController {
-  // ✅ applyHeading を削除（smoothHeading と完全に重複していたデッドコード）
+  static double _prevSpeed = 0;
+
+  static bool detectSuddenBrake({
+    required double currentSpeed,
+    double threshold = 8.0,
+  }) {
+    final prev = _prevSpeed;
+    _prevSpeed = currentSpeed;
+    final drop = prev - currentSpeed;
+    return prev > 10 && drop >= threshold;
+  }
+
   static double smoothHeading({
     required double currentHeading,
     required double newHeading,
