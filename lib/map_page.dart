@@ -20,6 +20,8 @@ import 'services/hazard_store.dart';
 import 'widgets/shiba_marker.dart';
 import 'services/weather_service.dart';
 import 'services/osm_data_service.dart';
+import 'services/ride_tracker.dart';
+import 'models/ride_report.dart';
 import 'helpers/map_text_helper.dart';
 
 import 'controllers/sensor_controller.dart';
@@ -80,6 +82,7 @@ class _MapPageState extends State<MapPage> {
   String? weatherText;
   List<OsmPoi> osmPois = [];
   DateTime? _lastOsmFetch;
+  final rideTracker = RideTracker();
 
   void setProgrammaticMove() {
     NavLogger.camera('SET PROGRAMMATIC TRUE');
@@ -176,11 +179,14 @@ class _MapPageState extends State<MapPage> {
     currentPos = pos;
     mapState.speed = spd;
 
+    rideTracker.recordPosition(currentPos, spd);
+
     if (GpsUpdateController.detectSuddenBrake(currentSpeed: spd)) {
       final report = await HazardStore.addReport(
         type: HazardType.suddenBrake,
         position: currentPos,
       );
+      rideTracker.recordHazard(report);
       setState(() => hazardReports.add(report));
     }
 
@@ -239,9 +245,13 @@ class _MapPageState extends State<MapPage> {
           goal: mapState.goal!,
           threshold: 0.0001,
         )) {
+      final report = await rideTracker.stop(mapState.routeDistanceKm);
       setState(() {
         mapState.clearRoute();
       });
+      if (report != null && mounted) {
+        _showRideResult(report);
+      }
     }
 
     if (mapState.transportMode == TransportMode.train &&
@@ -312,6 +322,11 @@ class _MapPageState extends State<MapPage> {
   void _startNavigation() {
     if (!NavigationController.canStartNavigation(mapState.routePoints)) return;
 
+    rideTracker.start();
+    if (weatherText != null) {
+      rideTracker.setWeather(weatherText!, 0);
+    }
+
     setState(() {
       mapState.isRouteOverview = false;
       mapState.isFollowing = true;
@@ -333,7 +348,11 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  void _cancelRoute() {
+  void _cancelRoute() async {
+    if (rideTracker.isTracking) {
+      final report = await rideTracker.stop(mapState.routeDistanceKm);
+      if (report != null && mounted) _showRideResult(report);
+    }
     setState(() {
       mapState.clearRoute();
       searchController.clear();
@@ -457,6 +476,67 @@ class _MapPageState extends State<MapPage> {
       trainPopup?.remove();
       trainPopup = null;
     });
+  }
+
+  void _showRideResult(RideReport report) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Row(
+          children: [
+            Text(
+              report.grade,
+              style: TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: report.safetyScore >= 75 ? Colors.green : report.safetyScore >= 50 ? Colors.orange : Colors.red,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('走行レポート', style: TextStyle(color: Colors.white, fontSize: 16)),
+                Text('安全スコア: ${report.safetyScore}点', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              ],
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _reportRow('距離', '${report.distanceKm.toStringAsFixed(1)} km'),
+            _reportRow('時間', '${report.durationMinutes}分'),
+            _reportRow('平均速度', '${report.avgSpeedKmh.toStringAsFixed(1)} km/h'),
+            _reportRow('最高速度', '${report.maxSpeedKmh.toStringAsFixed(1)} km/h'),
+            _reportRow('急ブレーキ', '${report.suddenBrakeCount}回'),
+            _reportRow('ハザード', '${report.hazardCount}件'),
+            if (report.nightRide) _reportRow('夜間走行', 'あり'),
+            if (report.weather != null) _reportRow('天気', report.weather!),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK', style: TextStyle(color: Colors.white70)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
   }
 
   // ── カメラ ──
