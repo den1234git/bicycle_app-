@@ -19,6 +19,9 @@ class TopBar extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onGo;
   final bool isNavigating;
+  final VoidCallback? onMapStyle;
+  final String mapStyleLabel;
+  final String? weatherText;
 
   const TopBar({
     super.key,
@@ -37,6 +40,9 @@ class TopBar extends StatelessWidget {
     required this.onCancel,
     required this.onGo,
     required this.isNavigating,
+    this.onMapStyle,
+    this.mapStyleLabel = '標準',
+    this.weatherText,
   });
 
   Widget box({
@@ -159,6 +165,53 @@ class TopBar extends StatelessWidget {
             ),
           ],
         ),
+        if (weatherText != null || onMapStyle != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                if (weatherText != null)
+                  Expanded(
+                    child: Container(
+                      height: 32,
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        weatherText!,
+                        style: const TextStyle(fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                if (weatherText != null && onMapStyle != null)
+                  const SizedBox(width: 6),
+                if (onMapStyle != null)
+                  GestureDetector(
+                    onTap: onMapStyle,
+                    child: Container(
+                      height: 32,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.map, size: 14),
+                          const SizedBox(width: 4),
+                          Text(mapStyleLabel, style: const TextStyle(fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         if (isFullView)
           Padding(
             padding: const EdgeInsets.only(top: 6),

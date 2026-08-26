@@ -18,6 +18,8 @@ import 'dialogs/hazard_dialog.dart';
 import 'models/hazard_report.dart';
 import 'services/hazard_store.dart';
 import 'widgets/shiba_marker.dart';
+import 'services/weather_service.dart';
+import 'services/osm_data_service.dart';
 import 'helpers/map_text_helper.dart';
 
 import 'controllers/sensor_controller.dart';
@@ -75,6 +77,9 @@ class _MapPageState extends State<MapPage> {
   BitmapDescriptor? bikeIcon;
   BitmapDescriptor? shibaIcon;
   List<HazardReport> hazardReports = [];
+  String? weatherText;
+  List<OsmPoi> osmPois = [];
+  DateTime? _lastOsmFetch;
 
   void setProgrammaticMove() {
     NavLogger.camera('SET PROGRAMMATIC TRUE');
@@ -93,6 +98,7 @@ class _MapPageState extends State<MapPage> {
     super.initState();
     _loadSavedLocations();
     _loadHazardReports();
+    _fetchWeather();
     WakelockPlus.enable();
     _initGps();
     _initCompass();
@@ -122,6 +128,21 @@ class _MapPageState extends State<MapPage> {
   Future<void> _loadHazardReports() async {
     final reports = await HazardStore.load();
     setState(() => hazardReports = reports);
+  }
+
+  Future<void> _fetchWeather() async {
+    final info = await WeatherService.fetch(currentPos);
+    if (info != null && mounted) {
+      setState(() => weatherText = info.summary);
+    }
+  }
+
+  Future<void> _fetchOsmPois() async {
+    final now = DateTime.now();
+    if (_lastOsmFetch != null && now.difference(_lastOsmFetch!).inSeconds < 60) return;
+    _lastOsmFetch = now;
+    final pois = await OsmDataService.fetchNearby(currentPos);
+    if (mounted) setState(() => osmPois = pois);
   }
 
   void _initCompass() {
@@ -242,6 +263,8 @@ class _MapPageState extends State<MapPage> {
         routePoints: mapState.routePoints,
       );
     }
+
+    _fetchOsmPois();
 
     if (GpsUpdateController.shouldUpdateUi(lastUiUpdate: lastUiUpdate)) {
       lastUiUpdate = DateTime.now();
@@ -489,6 +512,15 @@ class _MapPageState extends State<MapPage> {
           markerId: const MarkerId('goal'),
           position: mapState.goal!,
         ),
+      ...osmPois.map((poi) => Marker(
+            markerId: MarkerId('osm_${poi.position.latitude}_${poi.position.longitude}'),
+            position: poi.position,
+            icon: poi.markerIcon,
+            infoWindow: InfoWindow(
+              title: poi.label,
+              snippet: poi.name,
+            ),
+          )),
       ...hazardReports.map((r) => Marker(
             markerId: MarkerId('hazard_${r.id}'),
             position: r.position,
@@ -674,6 +706,13 @@ class _MapPageState extends State<MapPage> {
         _startNavigation();
       },
       isNavigating: mapState.appMode == AppMode.navigating,
+      weatherText: weatherText,
+      mapStyleLabel: MapStyles.label(MapStyles.current),
+      onMapStyle: () {
+        final next = MapStyles.next();
+        mapController?.setMapStyle(MapStyles.styleFor(next));
+        setState(() {});
+      },
       isFullView: mapState.isFullView,
       distanceKm: mapState.routeDistanceKm,
       etaText: mapState.etaText,
