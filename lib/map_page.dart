@@ -316,15 +316,57 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  Future<void> _generateAllRoutes() async {
+    if (mapState.goal == null) return;
+
+    final spd = mapState.speed < 5 ? 15.0 : mapState.speed;
+    final futures = RouteMode.values.map((mode) async {
+      final route = await RouteController.previewRoute(
+        currentPos,
+        mapState.goal!,
+        mode.name,
+        transportMode: mapState.transportMode,
+      );
+      final km = RouteController.calcDistanceKm(route);
+      final eta = RouteController.calcEta(km, spd);
+      return MapEntry(mode, (route: route, km: km, eta: eta));
+    });
+
+    final results = await Future.wait(futures);
+
+    setState(() {
+      for (final entry in results) {
+        mapState.candidateRoutes[entry.key] = entry.value.route;
+        mapState.candidateDistances[entry.key] = entry.value.km;
+        mapState.candidateEtas[entry.key] = entry.value.eta;
+      }
+      final selected = mapState.routeMode;
+      mapState.routePoints = mapState.candidateRoutes[selected] ?? [];
+      mapState.routeDistanceKm = mapState.candidateDistances[selected] ?? 0;
+      mapState.etaText = mapState.candidateEtas[selected] ?? '--';
+      mapState.routeProgress = 0;
+    });
+  }
+
+  void _selectRouteMode(RouteMode mode) {
+    if (mapState.candidateRoutes.isEmpty) return;
+    setState(() {
+      mapState.routeMode = mode;
+      mapState.routePoints = mapState.candidateRoutes[mode] ?? [];
+      mapState.routeDistanceKm = mapState.candidateDistances[mode] ?? 0;
+      mapState.etaText = mapState.candidateEtas[mode] ?? '--';
+    });
+  }
+
   Future<void> _showFullView() async {
     if (mapState.goal == null) return;
-    await _generateRoute();
+    await _generateAllRoutes();
     setState(() {
       mapState.isRouteOverview = true;
       mapState.isFullView = true;
       mapState.isFollowing = false;
       mapState.appMode = AppMode.preview;
-      mapState.nextGuideText = 'ルート案内中';
+      mapState.nextGuideText = 'ルートを選択してください';
     });
   }
 
@@ -337,6 +379,9 @@ class _MapPageState extends State<MapPage> {
     }
 
     setState(() {
+      mapState.candidateRoutes.clear();
+      mapState.candidateDistances.clear();
+      mapState.candidateEtas.clear();
       mapState.isRouteOverview = false;
       mapState.isFollowing = true;
       mapState.appMode = AppMode.navigating;
@@ -629,9 +674,35 @@ class _MapPageState extends State<MapPage> {
     };
   }
 
+  static const _routeColors = {
+    RouteMode.fast: Color(0xFFFF5722),
+    RouteMode.safe: Color(0xFF4CAF50),
+    RouteMode.scenic: Color(0xFF2196F3),
+  };
+
   Set<Polyline> _buildPolylines() {
+    final candidatePolylines = <Polyline>{};
+    if (mapState.appMode == AppMode.preview &&
+        mapState.candidateRoutes.length > 1) {
+      for (final mode in RouteMode.values) {
+        final pts = mapState.candidateRoutes[mode];
+        if (pts == null || pts.isEmpty) continue;
+        final isSelected = mode == mapState.routeMode;
+        candidatePolylines.add(Polyline(
+          polylineId: PolylineId('candidate_${mode.name}'),
+          points: pts,
+          width: isSelected ? 7 : 4,
+          color: isSelected
+              ? _routeColors[mode]!
+              : _routeColors[mode]!.withOpacity(0.35),
+          zIndex: isSelected ? 2 : 1,
+        ));
+      }
+    }
+
     return {
-      if (mapState.routePoints.isNotEmpty)
+      ...candidatePolylines,
+      if (candidatePolylines.isEmpty && mapState.routePoints.isNotEmpty)
         Polyline(
           polylineId: const PolylineId('route'),
           points: mapState.routePoints,
@@ -780,16 +851,17 @@ class _MapPageState extends State<MapPage> {
         );
       },
       onRouteMode: (mode) {
-        setState(() {
-          if (mode == 'F') {
-            mapState.routeMode = RouteMode.fast;
-          } else if (mode == 'S') {
-            mapState.routeMode = RouteMode.safe;
-          } else if (mode == 'C') {
-            mapState.routeMode = RouteMode.scenic;
-          }
-        });
-        if (mapState.goal != null) _generateRoute();
+        final selected = mode == 'F'
+            ? RouteMode.fast
+            : mode == 'S'
+                ? RouteMode.safe
+                : RouteMode.scenic;
+        if (mapState.candidateRoutes.isNotEmpty) {
+          _selectRouteMode(selected);
+        } else {
+          setState(() => mapState.routeMode = selected);
+          if (mapState.goal != null) _generateRoute();
+        }
       },
       onProfile: _showFullView,
       onCancel: _cancelRoute,

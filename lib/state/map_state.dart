@@ -29,6 +29,10 @@ class MapState {
 
   List<LatLng> routePoints = [];
 
+  Map<RouteMode, List<LatLng>> candidateRoutes = {};
+  Map<RouteMode, double> candidateDistances = {};
+  Map<RouteMode, String> candidateEtas = {};
+
   TransportMode transportMode = TransportMode.bike;
 
   RouteMode routeMode = RouteMode.fast;
@@ -56,6 +60,9 @@ class MapState {
 
   void clearRoute() {
     routePoints.clear();
+    candidateRoutes.clear();
+    candidateDistances.clear();
+    candidateEtas.clear();
     goal = null;
     appMode = AppMode.idle;
     isRouteOverview = false;
