@@ -105,7 +105,7 @@ class GpsUpdateController {
   }
 
   // ✅ 修正: 「全ポイントから離れている」→「直近ポイントから離れている」に変更。
-  //    通過済みポイントを無視することで、正常走行中の誤リルートを防ぐ。
+  //    点→セグメント距離を使い、長い直線区間での誤リルートを防ぐ。
   static bool shouldReroute({
     required LatLng currentPos,
     required List<LatLng> routePoints,
@@ -113,20 +113,45 @@ class GpsUpdateController {
   }) {
     if (routePoints.isEmpty) return false;
 
-    // 現在地に最も近いインデックスを基点に、前後 5 ポイントだけ確認
     final nearest = _closestIndex(currentPos, routePoints);
     final start = (nearest - 2).clamp(0, routePoints.length - 1);
     final end = (nearest + 5).clamp(0, routePoints.length);
 
-    final offRoute = routePoints.sublist(start, end).every((point) {
-      final latDiff = (currentPos.latitude - point.latitude).abs();
-      final lngDiff = (currentPos.longitude - point.longitude).abs();
-      return latDiff > 0.00009 || lngDiff > 0.00009;
-    });
+    double minDist = double.infinity;
+    for (int i = start; i < end - 1; i++) {
+      final d = _pointToSegmentDistance(
+        currentPos, routePoints[i], routePoints[i + 1],
+      );
+      if (d < minDist) minDist = d;
+    }
+    if (end - 1 > start) {
+      // already handled via segments
+    } else {
+      final p = routePoints[start];
+      minDist = (currentPos.latitude - p.latitude).abs() +
+          (currentPos.longitude - p.longitude).abs();
+    }
 
-    if (!offRoute) return false;
+    if (minDist <= 0.00012) return false;
 
     return DateTime.now().difference(lastRouteTime).inSeconds >= 3;
+  }
+
+  static double _pointToSegmentDistance(LatLng p, LatLng a, LatLng b) {
+    final dx = b.latitude - a.latitude;
+    final dy = b.longitude - a.longitude;
+    final lenSq = dx * dx + dy * dy;
+    if (lenSq == 0) {
+      return (p.latitude - a.latitude).abs() +
+          (p.longitude - a.longitude).abs();
+    }
+    var t = ((p.latitude - a.latitude) * dx + (p.longitude - a.longitude) * dy) / lenSq;
+    t = t.clamp(0.0, 1.0);
+    final projLat = a.latitude + t * dx;
+    final projLng = a.longitude + t * dy;
+    final dLat = p.latitude - projLat;
+    final dLng = p.longitude - projLng;
+    return (dLat.abs() + dLng.abs());
   }
 
   // ✅ 追加: 共通ヘルパー。最近傍インデックスを返す。
