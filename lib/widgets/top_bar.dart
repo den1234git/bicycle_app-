@@ -106,10 +106,13 @@ class TopBar extends StatelessWidget {
                   controller: controller,
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => onSearch(),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: "検索",
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: GestureDetector(
+                      onTap: onSearch,
+                      child: const Icon(Icons.search),
+                    ),
                   ),
                 ),
               ),
