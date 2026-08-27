@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 import '../services/app_settings.dart';
 import '../services/ride_tracker.dart';
 import '../services/sos_store.dart';
+import '../services/custom_marker_service.dart';
 import '../models/ride_report.dart';
 import '../models/sos_report.dart';
 
@@ -63,6 +65,12 @@ class _MorePageState extends State<MorePage> {
     super.initState();
     _loadSettings();
     _loadReports();
+    _loadCustomMarkerPath();
+  }
+
+  Future<void> _loadCustomMarkerPath() async {
+    final path = await CustomMarkerService.getSavedPath();
+    if (mounted) setState(() => _customMarkerPath = path);
   }
 
   Future<void> _loadSettings() async {
@@ -466,12 +474,30 @@ class _MorePageState extends State<MorePage> {
     ));
   }
 
+  String? _customMarkerPath;
+
   // ========== Marker ==========
   Widget _buildMarker() {
     return _card(ExpansionTile(
       leading: const Icon(Icons.location_on),
       title: const Text('Marker'),
       children: [
+        ListTile(
+          title: const Text('マーカーアイコン'),
+          subtitle: Text(_customMarkerPath != null ? 'カスタム画像' : '柴犬（デフォルト）'),
+          leading: _customMarkerPath != null
+              ? ClipOval(
+                  child: Image.file(
+                    File(_customMarkerPath!),
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : const Icon(Icons.pets, size: 40),
+          trailing: const Icon(Icons.edit, size: 18),
+          onTap: _showMarkerIconOptions,
+        ),
         ListTile(
           title: const Text('ルート色'),
           trailing: _colorCircle(Color(_routeColor)),
@@ -510,6 +536,71 @@ class _MorePageState extends State<MorePage> {
         ),
       ],
     ));
+  }
+
+  void _showMarkerIconOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('ギャラリーから選択'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final file = await CustomMarkerService.pickImage();
+                if (file != null) {
+                  setState(() => _customMarkerPath = file.path);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('マーカーを変更しました。アプリ再起動で反映されます')),
+                    );
+                  }
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('カメラで撮影'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final file = await CustomMarkerService.takePhoto();
+                if (file != null) {
+                  setState(() => _customMarkerPath = file.path);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('マーカーを変更しました。アプリ再起動で反映されます')),
+                    );
+                  }
+                }
+              },
+            ),
+            if (_customMarkerPath != null)
+              ListTile(
+                leading: const Icon(Icons.restore, color: Colors.orange),
+                title: const Text('デフォルト（柴犬）に戻す'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await CustomMarkerService.clearCustomMarker();
+                  setState(() => _customMarkerPath = null);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('デフォルトマーカーに戻しました。アプリ再起動で反映されます')),
+                    );
+                  }
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('キャンセル'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _colorCircle(Color c) => Container(

@@ -31,6 +31,7 @@ import 'controllers/route_controller.dart';
 import 'controllers/gps_update_controller.dart';
 
 import 'services/camera_service.dart';
+import 'services/custom_marker_service.dart';
 import 'services/train_mode_service.dart';
 import 'services/location_store.dart';
 
@@ -635,7 +636,8 @@ class _MapPageState extends State<MapPage> {
       const ImageConfiguration(size: Size(30, 30)),
       'assets/icons/bike001.png',
     );
-    shibaIcon = await createShibaMarker(size: 80);
+    final custom = await CustomMarkerService.loadCustomMarker(size: 80);
+    shibaIcon = custom ?? await createShibaMarker(size: 80);
     if (mounted) setState(() {});
   }
 
