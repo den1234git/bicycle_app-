@@ -58,6 +58,7 @@ class _MorePageState extends State<MorePage> {
   String _insuranceInfo = '';
   String _emergencyContact = '';
   String _accidentMemo = '';
+  double _weight = 60.0;
 
   List<RideReport> _reports = [];
 
@@ -97,6 +98,7 @@ class _MorePageState extends State<MorePage> {
       AppSettings.getInsuranceInfo(),
       AppSettings.getEmergencyContact(),
       AppSettings.getAccidentMemo(),
+      AppSettings.getWeight(),
     ]);
     if (!mounted) return;
     setState(() {
@@ -121,6 +123,7 @@ class _MorePageState extends State<MorePage> {
       _insuranceInfo = results[18] as String;
       _emergencyContact = results[19] as String;
       _accidentMemo = results[20] as String;
+      _weight = results[21] as double;
     });
   }
 
@@ -662,12 +665,20 @@ class _MorePageState extends State<MorePage> {
     final maxSpeed = _reports.isEmpty
         ? 0.0
         : _reports.fold<double>(0, (s, r) => s > r.maxSpeedKmh ? s : r.maxSpeedKmh);
-    final totalCalories = (totalDistance * 30).round();
+    final totalHours = totalMinutes / 60.0;
+    final avgMet = avgSpeed < 16 ? 6.8 : avgSpeed < 20 ? 8.0 : 10.0;
+    final totalCalories = (avgMet * _weight * totalHours).round();
 
     return _card(ExpansionTile(
       leading: const Icon(Icons.pedal_bike),
       title: const Text('Bicycle'),
       children: [
+        ListTile(
+          title: const Text('体重'),
+          subtitle: Text('${_weight.toStringAsFixed(0)} kg'),
+          trailing: const Icon(Icons.edit, size: 16),
+          onTap: () => _editWeight(),
+        ),
         ListTile(
           title: const Text('走行記録'),
           subtitle: Text('${_reports.length}件'),
@@ -683,8 +694,8 @@ class _MorePageState extends State<MorePage> {
           subtitle: Text('${totalMinutes ~/ 60}時間${totalMinutes % 60}分'),
         ),
         ListTile(
-          title: const Text('カロリー'),
-          subtitle: Text('$totalCalories kcal (概算)'),
+          title: const Text('消費カロリー'),
+          subtitle: Text('$totalCalories kcal'),
         ),
         ListTile(
           title: const Text('平均速度'),
@@ -696,6 +707,41 @@ class _MorePageState extends State<MorePage> {
         ),
       ],
     ));
+  }
+
+  void _editWeight() {
+    final controller = TextEditingController(text: _weight.toStringAsFixed(0));
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('体重を入力'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            suffixText: 'kg',
+            hintText: '60',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final v = double.tryParse(controller.text);
+              if (v != null && v > 0 && v < 300) {
+                await AppSettings.setWeight(v);
+                setState(() => _weight = v);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showRideHistory() {

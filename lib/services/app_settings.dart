@@ -64,6 +64,9 @@ class AppSettings {
   static Future<String> getWalkMarker() => _getString('walk_marker', 'default');
   static Future<void> setWalkMarker(String v) => _setString('walk_marker', v);
 
+  static Future<double> getWeight() => _getDouble('user_weight', 60.0);
+  static Future<void> setWeight(double v) => _setDouble('user_weight', v);
+
   static Future<String> getInsuranceInfo() => _getString('insurance_info', '');
   static Future<void> setInsuranceInfo(String v) => _setString('insurance_info', v);
 

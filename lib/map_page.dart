@@ -35,6 +35,7 @@ import 'services/custom_marker_service.dart';
 import 'services/train_mode_service.dart';
 import 'services/location_store.dart';
 
+import 'services/app_settings.dart';
 import 'services/route_service.dart';
 import 'state/map_state.dart';
 import 'utils/nav_logger.dart';
@@ -571,7 +572,13 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
-  void _showRideResult(RideReport report) {
+  void _showRideResult(RideReport report) async {
+    final weight = await AppSettings.getWeight();
+    final hours = report.durationMinutes / 60.0;
+    final met = report.avgSpeedKmh < 16 ? 6.8 : report.avgSpeedKmh < 20 ? 8.0 : 10.0;
+    final calories = (met * weight * hours).round();
+
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -601,6 +608,7 @@ class _MapPageState extends State<MapPage> {
           children: [
             _reportRow('距離', '${report.distanceKm.toStringAsFixed(1)} km'),
             _reportRow('時間', '${report.durationMinutes}分'),
+            _reportRow('消費カロリー', '$calories kcal'),
             _reportRow('平均速度', '${report.avgSpeedKmh.toStringAsFixed(1)} km/h'),
             _reportRow('最高速度', '${report.maxSpeedKmh.toStringAsFixed(1)} km/h'),
             _reportRow('急ブレーキ', '${report.suddenBrakeCount}回'),
