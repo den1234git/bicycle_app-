@@ -59,6 +59,8 @@ class _MorePageState extends State<MorePage> {
   String _emergencyContact = '';
   String _accidentMemo = '';
   double _weight = 60.0;
+  double _height = 170.0;
+  String _nickname = '';
 
   List<RideReport> _reports = [];
 
@@ -99,6 +101,8 @@ class _MorePageState extends State<MorePage> {
       AppSettings.getEmergencyContact(),
       AppSettings.getAccidentMemo(),
       AppSettings.getWeight(),
+      AppSettings.getHeight(),
+      AppSettings.getNickname(),
     ]);
     if (!mounted) return;
     setState(() {
@@ -124,6 +128,8 @@ class _MorePageState extends State<MorePage> {
       _emergencyContact = results[19] as String;
       _accidentMemo = results[20] as String;
       _weight = results[21] as double;
+      _height = results[22] as double;
+      _nickname = results[23] as String;
     });
   }
 
@@ -164,9 +170,62 @@ class _MorePageState extends State<MorePage> {
   // ========== MY設定 ==========
   Widget _buildMySettings() {
     return ExpansionTile(
-      leading: const Icon(Icons.home),
+      leading: const Icon(Icons.person),
       title: const Text('MY設定'),
       children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 16, top: 8),
+          child: Text('プロフィール',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 13)),
+        ),
+        ListTile(
+          leading: const Icon(Icons.badge, size: 20),
+          title: const Text('ニックネーム'),
+          subtitle: Text(_nickname.isEmpty ? '未設定' : _nickname),
+          trailing: const Icon(Icons.edit, size: 16),
+          onTap: () => _editText('ニックネーム', _nickname, (v) {
+            setState(() => _nickname = v);
+            AppSettings.setNickname(v);
+          }),
+        ),
+        ListTile(
+          leading: const Icon(Icons.monitor_weight, size: 20),
+          title: const Text('体重'),
+          subtitle: Text('${_weight.toStringAsFixed(0)} kg'),
+          trailing: const Icon(Icons.edit, size: 16),
+          onTap: () => _editNumber('体重', _weight, 'kg', (v) {
+            setState(() => _weight = v);
+            AppSettings.setWeight(v);
+          }),
+        ),
+        ListTile(
+          leading: const Icon(Icons.height, size: 20),
+          title: const Text('身長'),
+          subtitle: Text('${_height.toStringAsFixed(0)} cm'),
+          trailing: const Icon(Icons.edit, size: 16),
+          onTap: () => _editNumber('身長', _height, 'cm', (v) {
+            setState(() => _height = v);
+            AppSettings.setHeight(v);
+          }),
+        ),
+        ListTile(
+          leading: const Icon(Icons.phone, size: 20),
+          title: const Text('緊急連絡先'),
+          subtitle: Text(_emergencyContact.isEmpty ? '未登録' : _emergencyContact),
+          trailing: const Icon(Icons.edit, size: 16),
+          onTap: () => _editText('緊急連絡先', _emergencyContact, (v) {
+            setState(() => _emergencyContact = v);
+            AppSettings.setEmergencyContact(v);
+            SharedPreferences.getInstance()
+                .then((p) => p.setString('emergency_contact', v));
+          }),
+        ),
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.only(left: 16),
+          child: Text('登録場所',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 13)),
+        ),
         _locationTile(
           icon: widget.homeRegistered ? Icons.check_circle : Icons.add_location,
           color: widget.homeRegistered ? Colors.green : null,
@@ -214,6 +273,37 @@ class _MorePageState extends State<MorePage> {
           },
         ),
       ],
+    );
+  }
+
+  void _editNumber(String label, double current, String unit, Function(double) onSave) {
+    final controller = TextEditingController(text: current.toStringAsFixed(0));
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$labelを入力'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(suffixText: unit),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final v = double.tryParse(controller.text);
+              if (v != null && v > 0 && v < 500) {
+                onSave(v);
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -674,12 +764,6 @@ class _MorePageState extends State<MorePage> {
       title: const Text('Bicycle'),
       children: [
         ListTile(
-          title: const Text('体重'),
-          subtitle: Text('${_weight.toStringAsFixed(0)} kg'),
-          trailing: const Icon(Icons.edit, size: 16),
-          onTap: () => _editWeight(),
-        ),
-        ListTile(
           title: const Text('走行記録'),
           subtitle: Text('${_reports.length}件'),
           trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -709,41 +793,6 @@ class _MorePageState extends State<MorePage> {
     ));
   }
 
-  void _editWeight() {
-    final controller = TextEditingController(text: _weight.toStringAsFixed(0));
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('体重を入力'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            suffixText: 'kg',
-            hintText: '60',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('キャンセル'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final v = double.tryParse(controller.text);
-              if (v != null && v > 0 && v < 300) {
-                await AppSettings.setWeight(v);
-                setState(() => _weight = v);
-              }
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showRideHistory() {
     Navigator.push(
       context,
@@ -766,17 +815,6 @@ class _MorePageState extends State<MorePage> {
           onTap: () => _editText('保険情報', _insuranceInfo, (v) {
             setState(() => _insuranceInfo = v);
             AppSettings.setInsuranceInfo(v);
-          }),
-        ),
-        ListTile(
-          title: const Text('緊急連絡先'),
-          subtitle: Text(_emergencyContact.isEmpty ? '未登録' : _emergencyContact),
-          trailing: const Icon(Icons.edit, size: 18),
-          onTap: () => _editText('緊急連絡先', _emergencyContact, (v) {
-            setState(() => _emergencyContact = v);
-            AppSettings.setEmergencyContact(v);
-            final prefs = SharedPreferences.getInstance();
-            prefs.then((p) => p.setString('emergency_contact', v));
           }),
         ),
         ListTile(

@@ -67,6 +67,12 @@ class AppSettings {
   static Future<double> getWeight() => _getDouble('user_weight', 60.0);
   static Future<void> setWeight(double v) => _setDouble('user_weight', v);
 
+  static Future<double> getHeight() => _getDouble('user_height', 170.0);
+  static Future<void> setHeight(double v) => _setDouble('user_height', v);
+
+  static Future<String> getNickname() => _getString('user_nickname', '');
+  static Future<void> setNickname(String v) => _setString('user_nickname', v);
+
   static Future<String> getInsuranceInfo() => _getString('insurance_info', '');
   static Future<void> setInsuranceInfo(String v) => _setString('insurance_info', v);
 
