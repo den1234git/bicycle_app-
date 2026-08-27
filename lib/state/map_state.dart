@@ -24,6 +24,26 @@ enum ViewMode {
   bird,
 }
 
+class TransitInfo {
+  final String lineName;
+  final String vehicleType;
+  final String departureStop;
+  final String arrivalStop;
+  final String departureTime;
+  final String arrivalTime;
+  final int numStops;
+
+  TransitInfo({
+    required this.lineName,
+    required this.vehicleType,
+    required this.departureStop,
+    required this.arrivalStop,
+    required this.departureTime,
+    required this.arrivalTime,
+    required this.numStops,
+  });
+}
+
 class MapState {
   LatLng? goal;
 
@@ -58,11 +78,20 @@ class MapState {
   double routeDistanceKm = 0;
   String etaText = "--";
 
+  List<TransitInfo> transitSteps = [];
+  String? transitDepartureTime;
+  String? transitArrivalTime;
+  String? transitDuration;
+
   void clearRoute() {
     routePoints.clear();
     candidateRoutes.clear();
     candidateDistances.clear();
     candidateEtas.clear();
+    transitSteps.clear();
+    transitDepartureTime = null;
+    transitArrivalTime = null;
+    transitDuration = null;
     goal = null;
     appMode = AppMode.idle;
     isRouteOverview = false;

@@ -35,6 +35,7 @@ import 'services/custom_marker_service.dart';
 import 'services/train_mode_service.dart';
 import 'services/location_store.dart';
 
+import 'services/route_service.dart';
 import 'state/map_state.dart';
 import 'utils/nav_logger.dart';
 
@@ -304,6 +305,35 @@ class _MapPageState extends State<MapPage> {
   Future<void> _generateRoute() async {
     if (mapState.goal == null) return;
 
+    if (mapState.transportMode == TransportMode.train) {
+      final detail = await RouteService.getRouteDetail(
+        currentPos, mapState.goal!,
+        travelMode: 'transit',
+      );
+      setState(() {
+        mapState.routePoints = detail.points;
+        mapState.routeProgress = 0;
+        mapState.routeDistanceKm = RouteController.calcDistanceKm(detail.points);
+        mapState.etaText = detail.totalDuration ?? '--';
+        mapState.transitDepartureTime = detail.departureTime;
+        mapState.transitArrivalTime = detail.arrivalTime;
+        mapState.transitDuration = detail.totalDuration;
+        mapState.transitSteps = detail.transitSteps.map((s) => TransitInfo(
+          lineName: s.lineName,
+          vehicleType: s.vehicleType,
+          departureStop: s.departureStop,
+          arrivalStop: s.arrivalStop,
+          departureTime: s.departureTime,
+          arrivalTime: s.arrivalTime,
+          numStops: s.numStops,
+        )).toList();
+        mapState.nextGuideText = detail.transitSteps.isNotEmpty
+            ? '${detail.transitSteps.first.departureStop} → ${detail.transitSteps.last.arrivalStop}'
+            : 'ルート案内中';
+      });
+      return;
+    }
+
     final route = await RouteController.previewRoute(
       currentPos,
       mapState.goal!,
@@ -320,6 +350,7 @@ class _MapPageState extends State<MapPage> {
       mapState.routeProgress = 0;
       mapState.routeDistanceKm = km;
       mapState.etaText = eta;
+      mapState.transitSteps.clear();
       mapState.nextGuideText = 'ルート案内中';
     });
   }
@@ -829,6 +860,13 @@ class _MapPageState extends State<MapPage> {
             right: 10,
             child: _buildTopBar(),
           ),
+          if (mapState.transitSteps.isNotEmpty)
+            Positioned(
+              top: 140,
+              left: 10,
+              right: 10,
+              child: _buildTransitPanel(),
+            ),
           Positioned(
             bottom: 22,
             left: 8,
@@ -955,6 +993,87 @@ class _MapPageState extends State<MapPage> {
       distanceKm: mapState.routeDistanceKm,
       etaText: mapState.etaText,
       guideText: mapState.nextGuideText,
+    );
+  }
+
+  Widget _buildTransitPanel() {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 200),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[900]?.withAlpha(230),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (mapState.transitDepartureTime != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.train, color: Colors.blue, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${mapState.transitDepartureTime} → ${mapState.transitArrivalTime ?? ""}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      mapState.transitDuration ?? '',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ...mapState.transitSteps.map((step) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withAlpha(30),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.train, color: Colors.blue, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              step.lineName,
+                              style: const TextStyle(
+                                color: Colors.lightBlueAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${step.numStops}駅',
+                              style: const TextStyle(color: Colors.white54, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${step.departureTime} ${step.departureStop} → ${step.arrivalTime} ${step.arrivalStop}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+          ],
+        ),
+      ),
     );
   }
 
