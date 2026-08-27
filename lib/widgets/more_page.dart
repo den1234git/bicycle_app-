@@ -3,7 +3,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/app_settings.dart';
 import '../services/ride_tracker.dart';
+import '../services/sos_store.dart';
 import '../models/ride_report.dart';
+import '../models/sos_report.dart';
 
 class MorePage extends StatefulWidget {
   const MorePage({
@@ -712,8 +714,25 @@ class _MorePageState extends State<MorePage> {
             );
           },
         ),
+        ListTile(
+          leading: const Icon(Icons.history, color: Colors.grey),
+          title: const Text('通報履歴'),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: () => _showSosHistory(),
+        ),
       ],
     ));
+  }
+
+  void _showSosHistory() async {
+    final reports = await SosStore.loadAll();
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _SosHistoryPage(reports: reports),
+      ),
+    );
   }
 
   Future<void> _confirmCall(String number) async {
@@ -878,4 +897,69 @@ class _RideHistoryPage extends StatelessWidget {
           ],
         ),
       );
+}
+
+class _SosHistoryPage extends StatelessWidget {
+  final List<SosReport> reports;
+  const _SosHistoryPage({required this.reports});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('通報履歴')),
+      body: reports.isEmpty
+          ? const Center(child: Text('通報履歴がありません'))
+          : ListView.builder(
+              itemCount: reports.length,
+              itemBuilder: (_, i) {
+                final r = reports[i];
+                return Card(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _typeColor(r.type),
+                      child: Icon(_typeIcon(r.type),
+                          color: Colors.white, size: 20),
+                    ),
+                    title: Text(r.typeLabel),
+                    subtitle: Text(
+                      '${r.timestamp.month}/${r.timestamp.day} '
+                      '${r.timestamp.hour}:${r.timestamp.minute.toString().padLeft(2, '0')}'
+                      '${r.memo != null && r.memo!.isNotEmpty ? '\n${r.memo}' : ''}',
+                    ),
+                    trailing: r.lat != null
+                        ? const Icon(Icons.location_on,
+                            color: Colors.green, size: 18)
+                        : null,
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  static Color _typeColor(SosType t) {
+    switch (t) {
+      case SosType.emergency119: return Colors.red;
+      case SosType.police110: return Colors.blue;
+      case SosType.chikan: return Colors.orange;
+      case SosType.fight: return Colors.deepPurple;
+      case SosType.accident: return Colors.red[800]!;
+      case SosType.suspicious: return Colors.grey[700]!;
+      case SosType.other: return Colors.grey;
+    }
+  }
+
+  static IconData _typeIcon(SosType t) {
+    switch (t) {
+      case SosType.emergency119: return Icons.local_hospital;
+      case SosType.police110: return Icons.local_police;
+      case SosType.chikan: return Icons.flash_on;
+      case SosType.fight: return Icons.sports_mma;
+      case SosType.accident: return Icons.car_crash;
+      case SosType.suspicious: return Icons.visibility;
+      case SosType.other: return Icons.warning;
+    }
+  }
 }
