@@ -12,6 +12,14 @@ class RouteResult {
 }
 
 class RouterManager {
+  static String _travelMode(TransportMode t) {
+    switch (t) {
+      case TransportMode.bike: return 'bicycling';
+      case TransportMode.walk: return 'walking';
+      case TransportMode.train: return 'transit';
+    }
+  }
+
   static Future<List<LatLng>> getRoute({
     required LatLng start,
     required LatLng end,
@@ -33,28 +41,31 @@ class RouterManager {
     required TransportMode transportMode,
     required RouteMode routeMode,
   }) async {
+    final travel = _travelMode(transportMode);
     final profile = transportMode == TransportMode.walk ? 'foot' : 'bike';
 
-    // Google Directions API をメインルーターとして試行
     try {
       final googleRoute = await BikeRouter.getRoute(
         start: start,
         end: end,
         routeMode: routeMode,
+        travelMode: travel,
       );
       if (googleRoute.length > 2) {
         return RouteResult(points: googleRoute, source: 'google');
       }
     } catch (_) {}
 
-    // フォールバック: OSRM (無料)
-    final osrmRoute = await OsrmRouter.getRoute(
-      start: start,
-      end: end,
-      profile: profile,
-    );
-    if (osrmRoute != null && osrmRoute.length > 2) {
-      return RouteResult(points: osrmRoute, source: 'osrm');
+    // フォールバック: OSRM (電車モードではスキップ)
+    if (transportMode != TransportMode.train) {
+      final osrmRoute = await OsrmRouter.getRoute(
+        start: start,
+        end: end,
+        profile: profile,
+      );
+      if (osrmRoute != null && osrmRoute.length > 2) {
+        return RouteResult(points: osrmRoute, source: 'osrm');
+      }
     }
 
     // 両方失敗なら直線

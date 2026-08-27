@@ -8,28 +8,13 @@ class BikeRouter {
     required LatLng start,
     required LatLng end,
     required RouteMode routeMode,
+    String travelMode = 'bicycling',
   }) async {
-    switch (routeMode) {
-      case RouteMode.fast:
-        return await RouteService.getRoute(
-          start,
-          end,
-          routeMode: 'fast',
-        );
-
-      case RouteMode.safe:
-        return await RouteService.getRoute(
-          start,
-          end,
-          routeMode: 'safe',
-        );
-
-      case RouteMode.scenic:
-        return await RouteService.getRoute(
-          start,
-          end,
-          routeMode: 'scenic',
-        );
-    }
+    return await RouteService.getRoute(
+      start,
+      end,
+      routeMode: routeMode.name,
+      travelMode: travelMode,
+    );
   }
 }

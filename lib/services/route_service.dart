@@ -10,16 +10,13 @@ class RouteService {
     LatLng start,
     LatLng end, {
     String routeMode = 'fast',
+    String travelMode = 'bicycling',
   }) async {
-    // ✅ 修正: OSRMからGoogle Maps Directions APIに変更。
-    //    日本国内の道路に沿った正確なルートが取得できる。
-    final mode = 'bicycling';
-
     final url = Uri.parse(
       'https://maps.googleapis.com/maps/api/directions/json'
       '?origin=${start.latitude},${start.longitude}'
       '&destination=${end.latitude},${end.longitude}'
-      '&mode=$mode'
+      '&mode=$travelMode'
       '&key=${ApiKeys.googleApiKey}',
     );
 
@@ -53,7 +50,6 @@ class RouteService {
     }
   }
 
-  // Google Encoded Polyline Algorithm のデコード
   static List<LatLng> _decodePolyline(String encoded) {
     final List<LatLng> points = [];
     int index = 0;
