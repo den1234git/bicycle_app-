@@ -136,7 +136,8 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _loadHazardReports() async {
-    final reports = await HazardStore.load();
+    await HazardStore.removeExpired();
+    final reports = await HazardStore.loadActive();
     setState(() => hazardReports = reports);
   }
 
@@ -669,17 +670,29 @@ class _MapPageState extends State<MapPage> {
       ...hazardReports.map((r) => Marker(
             markerId: MarkerId('hazard_${r.id}'),
             position: r.position,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              r.type == HazardType.suddenBrake
-                  ? BitmapDescriptor.hueOrange
-                  : BitmapDescriptor.hueYellow,
-            ),
+            icon: BitmapDescriptor.defaultMarkerWithHue(_hazardHue(r.type)),
             infoWindow: InfoWindow(
-              title: HazardReport.labelFor(r.type),
+              title: '${HazardReport.emojiFor(r.type)} ${HazardReport.labelFor(r.type)}',
               snippet: r.note,
             ),
           )),
     };
+  }
+
+  static double _hazardHue(HazardType t) {
+    switch (t) {
+      case HazardType.flood: return BitmapDescriptor.hueAzure;
+      case HazardType.landslide: return BitmapDescriptor.hueRose;
+      case HazardType.roadClosed: return BitmapDescriptor.hueRed;
+      case HazardType.fallenTree: return BitmapDescriptor.hueGreen;
+      case HazardType.construction: return BitmapDescriptor.hueOrange;
+      case HazardType.icy: return BitmapDescriptor.hueCyan;
+      case HazardType.poorVisibility: return BitmapDescriptor.hueViolet;
+      case HazardType.suddenBrake: return BitmapDescriptor.hueOrange;
+      case HazardType.nearMiss: return BitmapDescriptor.hueYellow;
+      case HazardType.dangerousRoad: return BitmapDescriptor.hueRed;
+      case HazardType.other: return BitmapDescriptor.hueYellow;
+    }
   }
 
   static const _routeColors = {

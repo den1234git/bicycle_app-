@@ -8,6 +8,7 @@ import '../services/sos_store.dart';
 import '../services/custom_marker_service.dart';
 import '../models/ride_report.dart';
 import '../models/sos_report.dart';
+import '../dialogs/hazard_dialog.dart';
 
 class MorePage extends StatefulWidget {
   const MorePage({
@@ -807,9 +808,15 @@ class _MorePageState extends State<MorePage> {
         ),
         ListTile(
           leading: const Icon(Icons.history, color: Colors.grey),
-          title: const Text('通報履歴'),
+          title: const Text('SOS通報履歴'),
           trailing: const Icon(Icons.arrow_forward_ios, size: 16),
           onTap: () => _showSosHistory(),
+        ),
+        ListTile(
+          leading: const Icon(Icons.report_problem, color: Colors.orange),
+          title: const Text('危険ポイント履歴'),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: () => showHazardHistoryPage(context),
         ),
       ],
     ));
