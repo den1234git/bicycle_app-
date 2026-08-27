@@ -189,7 +189,7 @@ class _MapPageState extends State<MapPage> {
     currentPos = pos;
     mapState.speed = spd;
 
-    if (_draggedWhileStopped && spd > 3) {
+    if (_draggedWhileStopped && spd > 5) {
       _draggedWhileStopped = false;
       setState(() {
         mapState.isFollowing = true;
@@ -814,6 +814,11 @@ class _MapPageState extends State<MapPage> {
                   'following=${mapState.isFollowing} '
                   'routeOverview=${mapState.isRouteOverview}',
                 );
+                if (!isProgrammaticMove && mapState.isFollowing) {
+                  NavLogger.follow('FOLLOW OFF BY DRAG START');
+                  setState(() => mapState.isFollowing = false);
+                  _draggedWhileStopped = mapState.speed < 5;
+                }
               },
               onCameraIdle: _onCameraIdle,
             ),
