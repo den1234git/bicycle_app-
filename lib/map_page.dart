@@ -59,6 +59,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
   LatLng? dragStartTarget;
   LatLng? currentCameraTarget;
+  double _cameraTilt = 0;
   LatLng? homePos;
   LatLng? companyPos;
   LatLng? schoolPos;
@@ -889,6 +890,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               },
               onCameraMove: (position) {
                 currentCameraTarget = position.target;
+                if (_cameraTilt != position.tilt) {
+                  setState(() => _cameraTilt = position.tilt);
+                }
               },
               onCameraMoveStarted: () {
                 dragStartTarget = currentCameraTarget;
@@ -911,15 +915,24 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             Positioned.fill(
               child: IgnorePointer(
                 ignoring: true,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 40),
-                    child: SizedBox(
-                      width: 80,
-                      height: 80,
-                      child: _build3DOverlay(),
-                    ),
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final topOffset = constraints.maxHeight * 0.5
+                        + _cameraTilt * 1.5;
+                    return Stack(
+                      children: [
+                        Positioned(
+                          left: constraints.maxWidth / 2 - 40,
+                          top: topOffset,
+                          child: SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: _build3DOverlay(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
