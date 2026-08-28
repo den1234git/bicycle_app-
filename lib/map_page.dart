@@ -775,33 +775,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       ar: false,
       shadowIntensity: 0,
       loading: Loading.eager,
-      relatedJs: '''
-        setInterval(() => {
-          const mv = document.querySelector('model-viewer');
-          if (mv) {
-            // Hide all child elements (progress bar, etc)
-            for (const child of mv.children) {
-              child.style.display = 'none';
-            }
-            // Hide shadow DOM elements
-            if (mv.shadowRoot) {
-              const all = mv.shadowRoot.querySelectorAll('*');
-              all.forEach(el => {
-                if (el.tagName !== 'CANVAS' && el.id !== 'container'
-                    && !el.contains(mv.shadowRoot.querySelector('canvas'))) {
-                  const style = getComputedStyle(el);
-                  if (style.backgroundColor === 'rgb(0, 128, 0)'
-                      || style.color === 'rgb(0, 128, 0)'
-                      || el.classList.contains('progress-bar')
-                      || el.id === 'default-progress-bar') {
-                    el.style.display = 'none';
-                  }
-                }
-              });
-            }
-          }
-        }, 100);
-      ''',
     );
   }
 
@@ -840,18 +813,19 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           width: 6,
           color: const Color(0xFFB388FF),
         ),
-      Polyline(
-        polylineId: const PolylineId('heading_line'),
-        points: [
-          currentPos,
-          LatLng(
-            currentPos.latitude + 0.0002 * cos(mapState.heading * pi / 180),
-            currentPos.longitude + 0.0002 * sin(mapState.heading * pi / 180),
-          ),
-        ],
-        width: 4,
-        color: const Color(0xFF4CAF50),
-      ),
+      if (!_useCharacterMarkers)
+        Polyline(
+          polylineId: const PolylineId('heading_line'),
+          points: [
+            currentPos,
+            LatLng(
+              currentPos.latitude + 0.0002 * cos(mapState.heading * pi / 180),
+              currentPos.longitude + 0.0002 * sin(mapState.heading * pi / 180),
+            ),
+          ],
+          width: 4,
+          color: const Color(0xFF4CAF50),
+        ),
     };
   }
 
