@@ -33,6 +33,7 @@ import 'controllers/gps_update_controller.dart';
 import 'services/camera_service.dart';
 import 'services/custom_marker_service.dart';
 import 'widgets/character_viewer_page.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'services/train_mode_service.dart';
 import 'services/location_store.dart';
 
@@ -692,23 +693,22 @@ class _MapPageState extends State<MapPage> {
 
   Set<Marker> _buildMarkers() {
     return {
-      Marker(
-        markerId: const MarkerId('me'),
-        position: currentPos,
-        rotation: _useCharacterMarkers ? 0 : mapState.heading,
-        anchor: const Offset(0.5, 0.5),
-        flat: true,
-        zIndex: 10,
-        icon: _useCharacterMarkers && _characterMarkers != null
-            ? _characterMarkers![CustomMarkerService.directionForHeading(mapState.heading)]!
-            : shibaIcon ?? bikeIcon ?? BitmapDescriptor.defaultMarker,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CharacterViewerPage()),
-          );
-        },
-      ),
+      if (!_useCharacterMarkers)
+        Marker(
+          markerId: const MarkerId('me'),
+          position: currentPos,
+          rotation: mapState.heading,
+          anchor: const Offset(0.5, 0.5),
+          flat: true,
+          zIndex: 10,
+          icon: shibaIcon ?? bikeIcon ?? BitmapDescriptor.defaultMarker,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CharacterViewerPage()),
+            );
+          },
+        ),
       if (mapState.goal != null)
         Marker(
           markerId: const MarkerId('goal'),
@@ -749,6 +749,28 @@ class _MapPageState extends State<MapPage> {
       case HazardType.dangerousRoad: return BitmapDescriptor.hueRed;
       case HazardType.other: return BitmapDescriptor.hueYellow;
     }
+  }
+
+  Widget _build3DOverlay() {
+    final orbitAngle = ((mapState.heading % 360 + 360) % 360);
+    final orbitStr = '${orbitAngle}deg 75deg 2m';
+    return ClipOval(
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+        ),
+        child: ModelViewer(
+          src: 'assets/character_model.glb',
+          alt: '3D character',
+          autoRotate: false,
+          cameraControls: false,
+          cameraOrbit: orbitStr,
+          backgroundColor: const Color(0x00000000),
+          interactionPrompt: InteractionPrompt.none,
+        ),
+      ),
+    );
   }
 
   static const _routeColors = {
@@ -879,6 +901,23 @@ class _MapPageState extends State<MapPage> {
               onCameraIdle: _onCameraIdle,
             ),
           ),
+          if (_useCharacterMarkers)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                ignoring: true,
+                child: Center(
+                  child: SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: _build3DOverlay(),
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: 45,
             left: 10,
