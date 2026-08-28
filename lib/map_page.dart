@@ -775,6 +775,14 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       ar: false,
       shadowIntensity: 0,
       loading: Loading.eager,
+      relatedCss: '''
+        model-viewer .progress-bar { display: none !important; }
+        model-viewer #default-progress-bar { display: none !important; }
+        model-viewer .slot { display: none !important; }
+        model-viewer > * { display: none !important; }
+        .progress-bar { display: none !important; }
+        #loading-bar { display: none !important; }
+      ''',
     );
   }
 
