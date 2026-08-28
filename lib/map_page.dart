@@ -88,8 +88,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   BitmapDescriptor? shibaIcon;
   Map<String, BitmapDescriptor>? _characterMarkers;
   bool _useCharacterMarkers = false;
-  late final AnimationController _bounceController;
-  late final Animation<double> _bounceAnimation;
+  late final AnimationController _walkController;
+  double _walkPhase = 0;
   List<HazardReport> hazardReports = [];
   String? weatherText;
   List<OsmPoi> osmPois = [];
@@ -111,13 +111,12 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _bounceController = AnimationController(
+    _walkController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-    _bounceAnimation = Tween<double>(begin: 0, end: -6).animate(
-      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
-    );
+      duration: const Duration(milliseconds: 400),
+    )..addListener(() {
+      setState(() => _walkPhase = _walkController.value);
+    });
     _loadSavedLocations();
     _loadHazardReports();
     _fetchWeather();
@@ -133,7 +132,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     WakelockPlus.disable();
     clockTimer?.cancel();
     _programmaticTimer?.cancel();
-    _bounceController.dispose();
+    _walkController.dispose();
     searchController.dispose();
     sensorController.dispose();
     super.dispose();
@@ -205,6 +204,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   Future<void> _onGpsUpdate(LatLng pos, double spd, double hdg) async {
     currentPos = pos;
     mapState.speed = spd;
+    _updateWalkAnimation(spd);
 
     if (_draggedWhileStopped && spd > 5) {
       _draggedWhileStopped = false;
@@ -762,9 +762,32 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     }
   }
 
+  void _updateWalkAnimation(double speed) {
+    if (!_useCharacterMarkers) return;
+    if (speed < 2) {
+      // Stopped: stop animation
+      if (_walkController.isAnimating) _walkController.stop();
+    } else {
+      // Speed-based duration: faster = shorter cycle
+      final ms = (600 - (speed * 10).clamp(0, 400)).toInt();
+      _walkController.duration = Duration(milliseconds: ms.clamp(200, 600));
+      if (!_walkController.isAnimating) {
+        _walkController.repeat(reverse: true);
+      }
+    }
+  }
+
   Widget _build3DOverlay() {
-    final orbitAngle = ((mapState.heading + 270) % 360);
-    final orbitStr = '${orbitAngle}deg 75deg 2m';
+    // しっぽ振り: heading に小さな左右揺れを加える (±5度)
+    final tailWag = mapState.speed >= 2
+        ? sin(_walkPhase * pi * 2) * 5
+        : 0.0;
+    final orbitAngle = ((mapState.heading + 270 + tailWag) % 360);
+    // 歩きモーション: カメラの高さを微妙に上下 (72~78度)
+    final walkBob = mapState.speed >= 2
+        ? 75 + sin(_walkPhase * pi * 2) * 3
+        : 75.0;
+    final orbitStr = '${orbitAngle}deg ${walkBob}deg 2m';
     return ModelViewer(
       src: 'assets/character_model.glb',
       alt: '3D character',
