@@ -762,32 +762,28 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     }
   }
 
+  bool _characterStopped = true;
+
   void _updateWalkAnimation(double speed) {
     if (!_useCharacterMarkers) return;
-    if (speed < 2) {
-      // Stopped: stop animation
-      if (_walkController.isAnimating) _walkController.stop();
-    } else {
-      // Speed-based duration: faster = shorter cycle
-      final ms = (600 - (speed * 10).clamp(0, 400)).toInt();
-      _walkController.duration = Duration(milliseconds: ms.clamp(200, 600));
-      if (!_walkController.isAnimating) {
-        _walkController.repeat(reverse: true);
-      }
+    final stopped = speed < 2;
+    if (stopped != _characterStopped) {
+      setState(() => _characterStopped = stopped);
     }
   }
 
   Widget _build3DOverlay() {
-    // しっぽ振り: heading に小さな左右揺れを加える (±5度)
-    final tailWag = mapState.speed >= 2
-        ? sin(_walkPhase * pi * 2) * 5
-        : 0.0;
-    final orbitAngle = ((mapState.heading + 270 + tailWag) % 360);
-    // 歩きモーション: カメラの高さを微妙に上下 (72~78度)
-    final walkBob = mapState.speed >= 2
-        ? 75 + sin(_walkPhase * pi * 2) * 3
-        : 75.0;
-    final orbitStr = '${orbitAngle}deg ${walkBob}deg 2m';
+    // 停止時: 振り向く（正面=+90度）、移動時: 後ろ姿（+270度）
+    final baseAngle = _characterStopped
+        ? (mapState.heading + 90) % 360
+        : (mapState.heading + 270) % 360;
+    final orbitStr = '${baseAngle}deg 75deg 2m';
+
+    // 移動中: JSでしっぽ振り＋歩きモーション
+    // 停止時: JSアニメ停止
+    final speed = mapState.speed;
+    final cycleMs = _characterStopped ? 0 : (600 - (speed * 10).clamp(0, 400)).toInt().clamp(200, 600);
+
     return ModelViewer(
       src: 'assets/character_model.glb',
       alt: '3D character',
@@ -799,6 +795,33 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       ar: false,
       shadowIntensity: 0,
       loading: Loading.eager,
+      relatedJs: '''
+        let animId = null;
+        let baseAngle = $baseAngle;
+        let cycleMs = $cycleMs;
+        let startTime = performance.now();
+
+        function animate() {
+          const mv = document.querySelector('model-viewer');
+          if (!mv) { animId = requestAnimationFrame(animate); return; }
+
+          if (cycleMs <= 0) {
+            mv.cameraOrbit = baseAngle + 'deg 75deg 2m';
+            return;
+          }
+
+          const elapsed = performance.now() - startTime;
+          const phase = (elapsed % cycleMs) / cycleMs;
+          const swing = Math.sin(phase * Math.PI * 2);
+          const walkBob = 75 + swing * 3;
+
+          mv.cameraOrbit = baseAngle + 'deg ' + walkBob + 'deg 2m';
+          animId = requestAnimationFrame(animate);
+        }
+
+        if (animId) cancelAnimationFrame(animId);
+        animate();
+      ''',
     );
   }
 
