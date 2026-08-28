@@ -752,7 +752,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _build3DOverlay() {
-    final orbitAngle = ((mapState.heading + 90) % 360);
+    final orbitAngle = ((mapState.heading + 270) % 360);
     final orbitStr = '${orbitAngle}deg 75deg 2m';
     return ClipOval(
       child: Container(
