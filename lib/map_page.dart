@@ -764,22 +764,14 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   Widget _build3DOverlay() {
     final orbitAngle = ((mapState.heading + 270) % 360);
     final orbitStr = '${orbitAngle}deg 75deg 2m';
-    return ClipOval(
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
-        ),
-        child: ModelViewer(
-          src: 'assets/character_model.glb',
-          alt: '3D character',
-          autoRotate: false,
-          cameraControls: false,
-          cameraOrbit: orbitStr,
-          backgroundColor: const Color(0x00000000),
-          interactionPrompt: InteractionPrompt.none,
-        ),
-      ),
+    return ModelViewer(
+      src: 'assets/character_model.glb',
+      alt: '3D character',
+      autoRotate: false,
+      cameraControls: false,
+      cameraOrbit: orbitStr,
+      backgroundColor: const Color(0x00000000),
+      interactionPrompt: InteractionPrompt.none,
     );
   }
 
@@ -912,18 +904,17 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             ),
           ),
           if (_useCharacterMarkers)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              bottom: 0,
+            Positioned.fill(
               child: IgnorePointer(
                 ignoring: true,
                 child: Center(
-                  child: SizedBox(
-                    width: 80,
-                    height: 80,
-                    child: _build3DOverlay(),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 40),
+                    child: SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: _build3DOverlay(),
+                    ),
                   ),
                 ),
               ),
