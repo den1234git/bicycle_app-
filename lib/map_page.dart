@@ -677,7 +677,7 @@ class _MapPageState extends State<MapPage> {
       'assets/icons/bike001.png',
     );
     final custom = await CustomMarkerService.loadCustomMarker(size: 80);
-    shibaIcon = custom ?? await createShibaMarker(size: 80);
+    shibaIcon = custom ?? await CustomMarkerService.loadCharacterMarker(size: 80);
     if (mounted) setState(() {});
   }
 
