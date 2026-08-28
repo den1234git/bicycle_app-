@@ -920,19 +920,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               child: IgnorePointer(
                 ignoring: true,
                 child: Center(
-                  child: AnimatedBuilder(
-                    animation: _bounceAnimation,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(0, _bounceAnimation.value),
-                        child: child,
-                      );
-                    },
-                    child: SizedBox(
-                      width: 80,
-                      height: 80,
-                      child: _build3DOverlay(),
-                    ),
+                  child: SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: _build3DOverlay(),
                   ),
                 ),
               ),
