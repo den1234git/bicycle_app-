@@ -733,7 +733,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               snippet: poi.name,
             ),
           )),
-      ...hazardReports.map((r) => Marker(
+      ...hazardReports.where((r) => r.type != HazardType.suddenBrake).map((r) => Marker(
             markerId: MarkerId('hazard_${r.id}'),
             position: r.position,
             icon: BitmapDescriptor.defaultMarkerWithHue(_hazardHue(r.type)),
