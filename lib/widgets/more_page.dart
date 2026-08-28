@@ -9,6 +9,7 @@ import '../services/custom_marker_service.dart';
 import '../models/ride_report.dart';
 import '../models/sos_report.dart';
 import '../dialogs/hazard_dialog.dart';
+import 'character_viewer_page.dart';
 
 class MorePage extends StatefulWidget {
   const MorePage({
@@ -613,6 +614,20 @@ class _MorePageState extends State<MorePage> {
               AppSettings.setRouteWidth(v);
             },
           ),
+        ),
+        ListTile(
+          title: const Text('3D キャラクター表示'),
+          subtitle: const Text('回転・ズームで見られます'),
+          leading: const Icon(Icons.view_in_ar, size: 40),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CharacterViewerPage(),
+              ),
+            );
+          },
         ),
         ListTile(
           title: const Text('マーカーサイズ'),

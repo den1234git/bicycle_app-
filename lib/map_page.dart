@@ -32,6 +32,7 @@ import 'controllers/gps_update_controller.dart';
 
 import 'services/camera_service.dart';
 import 'services/custom_marker_service.dart';
+import 'widgets/character_viewer_page.dart';
 import 'services/train_mode_service.dart';
 import 'services/location_store.dart';
 
@@ -701,6 +702,12 @@ class _MapPageState extends State<MapPage> {
         icon: _useCharacterMarkers && _characterMarkers != null
             ? _characterMarkers![CustomMarkerService.directionForHeading(mapState.heading)]!
             : shibaIcon ?? bikeIcon ?? BitmapDescriptor.defaultMarker,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CharacterViewerPage()),
+          );
+        },
       ),
       if (mapState.goal != null)
         Marker(
