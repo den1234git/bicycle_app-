@@ -41,5 +41,6 @@ flutter:
 
   assets:
     - assets/icons/
+    - assets/icons/character/
     - assets/map_style.json
     - assets/sounds/

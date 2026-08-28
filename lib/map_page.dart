@@ -83,6 +83,8 @@ class _MapPageState extends State<MapPage> {
   BitmapDescriptor? walkIcon;
   BitmapDescriptor? bikeIcon;
   BitmapDescriptor? shibaIcon;
+  Map<String, BitmapDescriptor>? _characterMarkers;
+  bool _useCharacterMarkers = false;
   List<HazardReport> hazardReports = [];
   String? weatherText;
   List<OsmPoi> osmPois = [];
@@ -677,7 +679,13 @@ class _MapPageState extends State<MapPage> {
       'assets/icons/bike001.png',
     );
     final custom = await CustomMarkerService.loadCustomMarker(size: 80);
-    shibaIcon = custom ?? await CustomMarkerService.loadCharacterMarker(size: 80);
+    if (custom != null) {
+      shibaIcon = custom;
+    } else {
+      _characterMarkers = await CustomMarkerService.loadCharacterMarkers(size: 80);
+      _useCharacterMarkers = true;
+      shibaIcon = _characterMarkers!['back'];
+    }
     if (mounted) setState(() {});
   }
 
@@ -686,11 +694,13 @@ class _MapPageState extends State<MapPage> {
       Marker(
         markerId: const MarkerId('me'),
         position: currentPos,
-        rotation: mapState.heading,
+        rotation: _useCharacterMarkers ? 0 : mapState.heading,
         anchor: const Offset(0.5, 0.5),
         flat: true,
         zIndex: 10,
-        icon: shibaIcon ?? bikeIcon ?? BitmapDescriptor.defaultMarker,
+        icon: _useCharacterMarkers && _characterMarkers != null
+            ? _characterMarkers![CustomMarkerService.directionForHeading(mapState.heading)]!
+            : shibaIcon ?? bikeIcon ?? BitmapDescriptor.defaultMarker,
       ),
       if (mapState.goal != null)
         Marker(

@@ -66,10 +66,30 @@ class CustomMarkerService {
     await prefs.remove(_keyPath);
   }
 
+  static const _directionNames = [
+    'back', 'back_right', 'right', 'front_right',
+    'front', 'front_left', 'left', 'back_left',
+  ];
+
   static Future<BitmapDescriptor> loadCharacterMarker({int size = 80}) async {
-    final data = await rootBundle.load('assets/icons/character_marker.png');
+    final data = await rootBundle.load('assets/icons/character/back.png');
     final bytes = data.buffer.asUint8List();
     return _renderCircularMarker(bytes, size);
+  }
+
+  static Future<Map<String, BitmapDescriptor>> loadCharacterMarkers({int size = 80}) async {
+    final markers = <String, BitmapDescriptor>{};
+    for (final name in _directionNames) {
+      final data = await rootBundle.load('assets/icons/character/$name.png');
+      markers[name] = await _renderCircularMarker(data.buffer.asUint8List(), size);
+    }
+    return markers;
+  }
+
+  static String directionForHeading(double heading) {
+    final normalized = ((heading % 360) + 360) % 360;
+    final index = ((normalized + 22.5) / 45).floor() % 8;
+    return _directionNames[index];
   }
 
   static Future<BitmapDescriptor> _renderCircularMarker(
