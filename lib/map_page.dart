@@ -772,6 +772,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       cameraOrbit: orbitStr,
       backgroundColor: const Color(0x00000000),
       interactionPrompt: InteractionPrompt.none,
+      ar: false,
+      shadowIntensity: 0,
+      loading: Loading.eager,
     );
   }
 
