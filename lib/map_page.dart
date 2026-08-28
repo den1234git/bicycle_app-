@@ -49,7 +49,7 @@ class MapPage extends StatefulWidget {
   State<MapPage> createState() => _MapPageState();
 }
 
-class _MapPageState extends State<MapPage> {
+class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   final mapState = MapState();
 
   CommutePhase commutePhase = CommutePhase.bike;
@@ -87,6 +87,8 @@ class _MapPageState extends State<MapPage> {
   BitmapDescriptor? shibaIcon;
   Map<String, BitmapDescriptor>? _characterMarkers;
   bool _useCharacterMarkers = false;
+  late final AnimationController _bounceController;
+  late final Animation<double> _bounceAnimation;
   List<HazardReport> hazardReports = [];
   String? weatherText;
   List<OsmPoi> osmPois = [];
@@ -108,6 +110,13 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _bounceAnimation = Tween<double>(begin: 0, end: -6).animate(
+      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
+    );
     _loadSavedLocations();
     _loadHazardReports();
     _fetchWeather();
@@ -123,6 +132,7 @@ class _MapPageState extends State<MapPage> {
     WakelockPlus.disable();
     clockTimer?.cancel();
     _programmaticTimer?.cancel();
+    _bounceController.dispose();
     searchController.dispose();
     sensorController.dispose();
     super.dispose();
@@ -910,10 +920,19 @@ class _MapPageState extends State<MapPage> {
               child: IgnorePointer(
                 ignoring: true,
                 child: Center(
-                  child: SizedBox(
-                    width: 80,
-                    height: 80,
-                    child: _build3DOverlay(),
+                  child: AnimatedBuilder(
+                    animation: _bounceAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, _bounceAnimation.value),
+                        child: child,
+                      );
+                    },
+                    child: SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: _build3DOverlay(),
+                    ),
                   ),
                 ),
               ),
