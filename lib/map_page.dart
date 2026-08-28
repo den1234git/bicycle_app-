@@ -775,13 +775,32 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       ar: false,
       shadowIntensity: 0,
       loading: Loading.eager,
-      relatedCss: '''
-        model-viewer .progress-bar { display: none !important; }
-        model-viewer #default-progress-bar { display: none !important; }
-        model-viewer .slot { display: none !important; }
-        model-viewer > * { display: none !important; }
-        .progress-bar { display: none !important; }
-        #loading-bar { display: none !important; }
+      relatedJs: '''
+        setInterval(() => {
+          const mv = document.querySelector('model-viewer');
+          if (mv) {
+            // Hide all child elements (progress bar, etc)
+            for (const child of mv.children) {
+              child.style.display = 'none';
+            }
+            // Hide shadow DOM elements
+            if (mv.shadowRoot) {
+              const all = mv.shadowRoot.querySelectorAll('*');
+              all.forEach(el => {
+                if (el.tagName !== 'CANVAS' && el.id !== 'container'
+                    && !el.contains(mv.shadowRoot.querySelector('canvas'))) {
+                  const style = getComputedStyle(el);
+                  if (style.backgroundColor === 'rgb(0, 128, 0)'
+                      || style.color === 'rgb(0, 128, 0)'
+                      || el.classList.contains('progress-bar')
+                      || el.id === 'default-progress-bar') {
+                    el.style.display = 'none';
+                  }
+                }
+              });
+            }
+          }
+        }, 100);
       ''',
     );
   }
