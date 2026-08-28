@@ -773,14 +773,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   }
 
   Widget _build3DOverlay() {
-    // 停止時: 振り向く（正面=+90度）、移動時: 後ろ姿（+270度）
-    final baseAngle = _characterStopped
-        ? (mapState.heading + 90) % 360
-        : (mapState.heading + 270) % 360;
+    final baseAngle = (mapState.heading + 270) % 360;
     final orbitStr = '${baseAngle}deg 75deg 2m';
 
-    // 移動中: JSでしっぽ振り＋歩きモーション
-    // 停止時: JSアニメ停止
     final speed = mapState.speed;
     final cycleMs = _characterStopped ? 0 : (600 - (speed * 10).clamp(0, 400)).toInt().clamp(200, 600);
 
@@ -799,7 +794,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         let animId = null;
         let baseAngle = $baseAngle;
         let cycleMs = $cycleMs;
-        let startTime = performance.now();
 
         function animate() {
           const mv = document.querySelector('model-viewer');
@@ -810,7 +804,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             return;
           }
 
-          const elapsed = performance.now() - startTime;
+          const elapsed = performance.now();
           const phase = (elapsed % cycleMs) / cycleMs;
           const swing = Math.sin(phase * Math.PI * 2);
           const walkBob = 75 + swing * 3;
